@@ -264,23 +264,24 @@ namespace LECIA
         {
             lsLessonsService = IAppHost.GetService<ILessonsService>();
             psProfile = IAppHost.GetService<IProfileService>();
-            DateTime targetDate = DateTime.Today;
-            string guid;
+            DateTime dtTargetDate = DateTime.Today;
+            string sGuid;
             string sMessage = "";
             while (bKeepWorking)
             {
-                targetDate = DateTime.Today;
+                dtTargetDate = DateTime.Today;
 
                 //↓测试数据
-                sMessage = "NextPointTime: {NextPointTime}    ClassLeftTime: {ClassLeftTime}    " +
-                    "BreakingLeftTime: {BreakingLeftTime}    CurrentSubjectName:{CurrentSubjectName}    CurrentClassPlan:{CurrentClassPlan}";
+                //sMessage = "NextPointTime: {NextPointTime}    ClassLeftTime: {ClassLeftTime}    " +
+                //    "BreakingLeftTime: {BreakingLeftTime}    CurrentSubjectName:{CurrentSubjectName}    CurrentClassPlan:{CurrentClassPlan}";
+                sMessage = sSettings.sMainDataFormat;
                 try
                 {
                     //获取今日课表
                     AppBase.Current.Dispatcher.Invoke(() =>
                     {
                         sNextClassSubject = lsLessonsService.NextClassSubject;
-                        cpCurrentClassPlan = lsLessonsService.GetClassPlanByDate(targetDate, out guid);
+                        cpCurrentClassPlan = lsLessonsService.GetClassPlanByDate(dtTargetDate, out sGuid);
                     });
                     if (cpCurrentClassPlan != null)
                     {

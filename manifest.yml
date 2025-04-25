@@ -4,9 +4,9 @@
 
 id: LECIA
 name: LECIA
-description: 插件描述
+description: 将Ci的课表发送到物理设备
 entranceAssembly: "LECIA.dll"
-url: https://example.com
-version: 0.0.0.0
-apiVersion: 1.5.0
+url: https://github.com/PULLUP114514/LECIA
+version: 0.0.0.1
+apiVersion: 1.6.0.1
 author: BSODWTPC
