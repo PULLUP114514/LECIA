@@ -18,6 +18,8 @@ using ClassIsland.Core.Abstractions.Services;
 using ClassIsland.Core.Controls.LessonsControls;
 using ClassIsland.Shared;
 using static System.Runtime.InteropServices.JavaScript.JSType;
+using System.Text;
+using System.Windows.Forms;
 
 namespace LECIA
 {
@@ -107,7 +109,7 @@ namespace LECIA
         private static bool bKeepWorking = true;
         private static Thread thrMainLoop = null;
         private static SerialPort spSerialPort = null;
-        public ILessonsService LessonsService { get; set; }
+        public ILessonsService lsLessonsService { get; set; }
         public static ClassPlan cpCurrentClassPlan;
         public static Subject sNextClassSubject;
         public static TimeSpan tsTimeToNextPoint;
@@ -244,7 +246,7 @@ namespace LECIA
             }
         }
 
-        public string GetSubjectNameByGuid(string guid)
+        public string sGETSUBJECTNAMEBYGUID(string guid)
         {
             if (psProfile.Profile.Subjects == null)
                 return null;
@@ -252,53 +254,129 @@ namespace LECIA
             if (psProfile.Profile.Subjects.TryGetValue(guid, out Subject subject))
                 return subject?.Name;
 
-            return null; // 或者 return $"未找到GUID: {guid}";
+            return null; 
         }
 
 
+
+        //todo:还需要将config中的message配置读取到sMessage中
         private void vMAINLOOP()
         {
-            LessonsService = IAppHost.GetService<ILessonsService>();
+            lsLessonsService = IAppHost.GetService<ILessonsService>();
             psProfile = IAppHost.GetService<IProfileService>();
             DateTime targetDate = DateTime.Today;
             string guid;
             string sMessage = "";
-            //var subject1;
             while (bKeepWorking)
             {
                 targetDate = DateTime.Today;
+
+                //↓测试数据
+                sMessage = "NextPointTime: {NextPointTime}    ClassLeftTime: {ClassLeftTime}    " +
+                    "BreakingLeftTime: {BreakingLeftTime}    CurrentSubjectName:{CurrentSubjectName}    CurrentClassPlan:{CurrentClassPlan}";
                 try
                 {
-                    //获取数据
+                    //获取今日课表
                     AppBase.Current.Dispatcher.Invoke(() =>
                     {
-                        sNextClassSubject = LessonsService.NextClassSubject;
-                        cpCurrentClassPlan = LessonsService.GetClassPlanByDate(targetDate, out guid);
+                        sNextClassSubject = lsLessonsService.NextClassSubject;
+                        cpCurrentClassPlan = lsLessonsService.GetClassPlanByDate(targetDate, out guid);
                     });
-
                     if (cpCurrentClassPlan != null)
                     {
                         //pProfile.Subjects.TryGetValue("97d0bf3f-137f-4f8a-87d6-ff387063bbd3", out var subject1);
                         //sMessage = GetSubjectNameByGuid("97d0bf3f-137f-4f8a-87d6-ff387063bbd3");
                         //sMessage = sNextClassSubject.Name;
 
-                    }
+                        /*
+                         * 以下为关键字： (大小写敏感的）
+                         * {NextPointTime}              距离下个时间点的剩余时间（可能为Zero）
+                         * {ClassLeftTime}              距离上课的时间（可能为Zero）
+                         * {BreakingLeftTime}           距离下课的时间（可能为Zero）
+                         * {CurrentSubjectName}         当前的课程名  （当无课程时为“无课程”）
+                         * {CurrentClassPlan}           当前的课表
+                         */
 
-                    
 
-                    if (spSerialPort == null || !spSerialPort.IsOpen)
-                    {
-                        vINITSERIALPORT();
-                        continue;
-                    }
-                    if (spSerialPort != null && spSerialPort.IsOpen )
-                    {
-                        //发送
-                        if (!string.IsNullOrEmpty(sMessage))
+                        //获取下个时间点
+                        if (lsLessonsService.OnBreakingTimeLeftTime != TimeSpan.Zero)
                         {
-                            spSerialPort.Write($"{sMessage}\n");
+                            tsTimeToNextPoint = lsLessonsService.OnBreakingTimeLeftTime;
+                        }
+                        else if (lsLessonsService.OnClassLeftTime != TimeSpan.Zero)
+                        {
+                            tsTimeToNextPoint = lsLessonsService.OnClassLeftTime;
+                        }
+                        else
+                        {
+                            tsTimeToNextPoint = TimeSpan.Zero;
+                        }
+                        sMessage = sMessage.Replace("{NextPointTime}", tsTimeToNextPoint.ToString());
+
+
+                        sMessage = sMessage.Replace("{ClassLeftTime}", lsLessonsService.OnClassLeftTime.ToString());
+
+
+                        sMessage = sMessage.Replace("{BreakingLeftTime}", lsLessonsService.OnBreakingTimeLeftTime.ToString());
+
+                        string sCurrentSubjectNameTemp = "";
+                        if(sNextClassSubject.AttachedObjects.Count == 0)
+                        {
+                            sCurrentSubjectNameTemp = "无课程";
+                        }
+                        else
+                        {
+                            sCurrentSubjectNameTemp = sNextClassSubject.Name;
+                        }
+                        sMessage = sMessage.Replace("{CurrentSubjectName}", sCurrentSubjectNameTemp);
+
+                        
+                        string sClassPlan = "";
+                        for (int i = 0; i < cpCurrentClassPlan.Classes.Count; i++)
+                        {
+                            sClassPlan += sGETSUBJECTNAMEBYGUID(cpCurrentClassPlan.Classes[i].SubjectId);
+                            if(i < cpCurrentClassPlan.Classes.Count - 1)
+                            {
+                                sClassPlan += ",";
+                            }
+                        }
+                        if (!string.IsNullOrEmpty(sClassPlan))
+                        {
+                            sMessage = sMessage.Replace("{CurrentClassPlan}", sClassPlan);
+                        }
+
+
+
+                        //重初始化
+                        if (spSerialPort == null || !spSerialPort.IsOpen)
+                        {
+                            vINITSERIALPORT();
+                            continue;
+                        }
+
+
+                        //发送
+                        if (spSerialPort != null && spSerialPort.IsOpen && !string.IsNullOrEmpty(sMessage))
+                        {
+                            byte[] bData = Encoding.UTF8.GetBytes($"{sMessage}\n");
+                            spSerialPort.Write(bData, 0, bData.Length);
                         }
                     }
+                    else
+                    {
+                        //重初始化
+                        if (spSerialPort == null || !spSerialPort.IsOpen)
+                        {
+                            vINITSERIALPORT();
+                            continue;
+                        }
+                        byte[] bData = Encoding.UTF8.GetBytes("noclass\n");
+                        spSerialPort.Write(bData, 0, bData.Length);
+                    }
+
+
+                    //todo:可变的时间
+                    Thread.Sleep(20);
                 }
                 catch (Exception ex)
                 {
