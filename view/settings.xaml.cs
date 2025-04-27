@@ -20,6 +20,7 @@ using System.Windows.Shapes;
 using static LECIA.Plugin;
 using System.ComponentModel;
 using System.Text.RegularExpressions;
+using unvell.ReoGrid.Actions;
 
 
 namespace LECIA.view
@@ -133,6 +134,16 @@ namespace LECIA.view
                     CommonDialog.ShowInfo("波特率错误，请输入正整数!");
                     return false;
                 }
+                //数据格式
+                if (string.IsNullOrEmpty(
+                    ((System.Windows.Controls.TextBox)SETTING_DATAFORMAT.Switcher).Text
+                    ))
+                {
+                    CommonDialog.ShowInfo("数据格式为空!");
+                    return false;
+                }
+
+
                 return true;
             }
             catch(Exception ex)
@@ -150,12 +161,56 @@ namespace LECIA.view
             {
                 MENU_STARTSW.Header = "立即停止";
             }
+            //set
+            SETTING_AUTOSTARTSW.IsOn = GlobalVars.sSettings.bAutoStart;
+            ((System.Windows.Controls.TextBox)SETTING_COMPORT.Switcher).Text = GlobalVars.sSettings.sComPort;
+            ((System.Windows.Controls.TextBox)SETTING_BAUNDRATE.Switcher).Text = GlobalVars.sSettings.iBaundRate.ToString();
+            ((System.Windows.Controls.TextBox)SETTING_DATAFORMAT.Switcher).Text = GlobalVars.sSettings.sMainDataFormat;
+            ((System.Windows.Controls.TextBox)SETTING_DELAYTIME.Switcher).Text = GlobalVars.sSettings.iDelay.ToString();
+
+
         }
 
         private void MENU_SAVE_Click(object sender, RoutedEventArgs e)
         {
-            if (bFULLCHECK()) {
+            try
+            {
+                if (bFULLCHECK())
+                {
 
+                    {
+                        //set
+                        GlobalVars.sSettings.bAutoStart = SETTING_AUTOSTARTSW.IsOn;
+                        GlobalVars.sSettings.iDataTarget = 0;
+                        GlobalVars.sSettings.sComPort = ((System.Windows.Controls.TextBox)SETTING_COMPORT.Switcher).Text;
+                        GlobalVars.sSettings.iBaundRate = int.Parse(((System.Windows.Controls.TextBox)SETTING_BAUNDRATE.Switcher).Text);
+                        GlobalVars.sSettings.sMainDataFormat = ((System.Windows.Controls.TextBox)SETTING_DATAFORMAT.Switcher).Text;
+                        GlobalVars.sSettings.iDelay = int.Parse(((System.Windows.Controls.TextBox)SETTING_DELAYTIME.Switcher).Text);
+
+
+                        //write
+                        {
+                            if (GlobalVars.sSettings.bAutoStart == true)
+                            {
+                                vINIWRITE("mainconfig", "AutoStart", "1", GlobalVars.sConfigPath);
+                            }
+                            else
+                            {
+                                vINIWRITE("mainconfig", "AutoStart", "0", GlobalVars.sConfigPath);
+                            }
+                            vINIWRITE("mainconfig", "datatarget", GlobalVars.sSettings.iDataTarget.ToString(), GlobalVars.sConfigPath);
+                            vINIWRITE("mainconfig", "comport", GlobalVars.sSettings.sComPort, GlobalVars.sConfigPath);
+                            vINIWRITE("mainconfig", "baundrate", GlobalVars.sSettings.iBaundRate.ToString(), GlobalVars.sConfigPath);
+                            vINIWRITE("mainconfig", "maindataformat", GlobalVars.sSettings.sMainDataFormat, GlobalVars.sConfigPath);
+                            vINIWRITE("mainconfig", "delay", GlobalVars.sSettings.iDelay.ToString(), GlobalVars.sConfigPath);
+                            CommonDialog.ShowInfo("设置已保存!");
+                        }
+                    }
+                }
+            }
+            catch(Exception ex)
+            {
+                CommonDialog.ShowInfo($"发生了错误\n{ex.Message}");
             }
 
         }
@@ -169,14 +224,37 @@ namespace LECIA.view
             }
             else
             {
+                try
+                {
+                    if (bFULLCHECK())
+                    {
+                        {
+                            //set
+                            GlobalVars.sSettings.bAutoStart = SETTING_AUTOSTARTSW.IsOn;
+                            GlobalVars.sSettings.iDataTarget = 0;
+                            GlobalVars.sSettings.sComPort = ((System.Windows.Controls.TextBox)SETTING_COMPORT.Switcher).Text;
+                            GlobalVars.sSettings.iBaundRate = int.Parse(((System.Windows.Controls.TextBox)SETTING_BAUNDRATE.Switcher).Text);
+                            GlobalVars.sSettings.sMainDataFormat = ((System.Windows.Controls.TextBox)SETTING_DATAFORMAT.Switcher).Text;
+                            GlobalVars.sSettings.iDelay = int.Parse(((System.Windows.Controls.TextBox)SETTING_DELAYTIME.Switcher).Text);
+                        }
+                        Task.Run(() =>
+                        {
+                            var plugin = new LECIA.Plugin();
+                            plugin.vMAINLOOP();
+                        });
+                    }
+                    else
+                    {
+                        return;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    CommonDialog.ShowInfo($"启动时发生了错误\n{ex.Message}");
+                    return;
+                }
                 GlobalVars.bKeepWorking = true;
                 MENU_STARTSW.Header = "立即停止";
-                Task.Run(() =>
-                {
-                    var plugin = new LECIA.Plugin();
-                    plugin.vMAINLOOP();
-                });
-
             }
             GlobalVars.bThreadStarted = !GlobalVars.bThreadStarted;
         }

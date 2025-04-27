@@ -84,7 +84,7 @@ namespace LECIA
         }
 
 
-        private string sConfigPath = "";
+        
         //public static bool bKeepWorking { get; set; } = true;
         public static Thread thrMainLoop ;
         private static SerialPort spSerialPort = null;
@@ -98,13 +98,13 @@ namespace LECIA
         public IProfileService psProfile { get; set; }
         public override void Initialize(HostBuilderContext context, IServiceCollection services)
         {
-            sConfigPath = PluginConfigFolder;
-            if(string.IsNullOrEmpty(sConfigPath))
+            GlobalVars.sConfigPath = PluginConfigFolder;
+            if(string.IsNullOrEmpty(GlobalVars.sConfigPath))
             {
                 throw new Exception("LECIA: Cannot Get Config Path.");
             }
-            sConfigPath += "\\config.ini";
-            Console.WriteLine($"LECIA: Config Path: {sConfigPath}");
+            GlobalVars.sConfigPath += "\\config.ini";
+            Console.WriteLine($"LECIA: Config Path: {GlobalVars.sConfigPath}");
             string sTemp = "";
             
             //注册退出
@@ -117,7 +117,7 @@ namespace LECIA
             
             {
                 //autostart      0=disable 1=enable
-                sTemp = sINIREAD("mainconfig", "autostart", sConfigPath);
+                sTemp = sINIREAD("mainconfig", "autostart", GlobalVars.sConfigPath);
                 if (sTemp != "null")
                 {
                     if (sTemp == "0")
@@ -130,62 +130,74 @@ namespace LECIA
                     }
                     else
                     {
-                        vINIWRITE("mainconfig", "autostart", "0", sConfigPath);
+                        vINIWRITE("mainconfig", "autostart", "0", GlobalVars.sConfigPath);
                     }
                 }
                 else
                 {
-                    vINIWRITE("mainconfig", "autostart", "0", sConfigPath);
+                    vINIWRITE("mainconfig", "autostart", "0", GlobalVars.sConfigPath);
                 }
                 Console.WriteLine($"LECIA: Load Config -> autostart: {GlobalVars.sSettings.bAutoStart}");
 
                 //datatarget
-                sTemp = sINIREAD("mainconfig", "datatarget", sConfigPath);
+                sTemp = sINIREAD("mainconfig", "datatarget", GlobalVars.sConfigPath);
                 if (sTemp != "null")
                 {
                     GlobalVars.sSettings.iDataTarget = int.Parse(sTemp);
                 }
                 else
                 {
-                    vINIWRITE("mainconfig", "datatarget", "0", sConfigPath);
+                    vINIWRITE("mainconfig", "datatarget", "0", GlobalVars.sConfigPath);
                 }
                 Console.WriteLine($"LECIA: Load Config -> datatarget: {GlobalVars.sSettings.iDataTarget}");
 
                 //comport
-                sTemp = sINIREAD("mainconfig", "comport", sConfigPath);
+                sTemp = sINIREAD("mainconfig", "comport", GlobalVars.sConfigPath);
                 if (sTemp != "null")
                 {
                     GlobalVars.sSettings.sComPort = sTemp;
                 }
                 else
                 {
-                    vINIWRITE("mainconfig", "comport", "COM1", sConfigPath);
+                    vINIWRITE("mainconfig", "comport", "COM1", GlobalVars.sConfigPath);
                 }
                 Console.WriteLine($"LECIA: Load Config -> comport: {GlobalVars.sSettings.sComPort}");
 
                 //BaundRate
-                sTemp = sINIREAD("mainconfig", "baundrate", sConfigPath);
+                sTemp = sINIREAD("mainconfig", "baundrate", GlobalVars.sConfigPath);
                 if (sTemp != "null")
                 {
                     GlobalVars.sSettings.iBaundRate = int.Parse(sTemp);
                 }
                 else
                 {
-                    vINIWRITE("mainconfig", "baundrate", "0", sConfigPath);
+                    vINIWRITE("mainconfig", "baundrate", "0", GlobalVars.sConfigPath);
                 }
                 Console.WriteLine($"LECIA: Load Config -> BaundRate: {GlobalVars.sSettings.iBaundRate}");
 
                 //maindataformat
-                sTemp = sINIREAD("mainconfig", "maindataformat", sConfigPath);
+                sTemp = sINIREAD("mainconfig", "maindataformat", GlobalVars.sConfigPath);
                 if (sTemp != "null")
                 {
                     GlobalVars.sSettings.sMainDataFormat = sTemp;
                 }
                 else
                 {
-                    vINIWRITE("mainconfig", "maindataformat", "no config", sConfigPath);
+                    vINIWRITE("mainconfig", "maindataformat", "no config", GlobalVars.sConfigPath);
                 }
                 Console.WriteLine($"LECIA: Load Config -> maindataformat: {GlobalVars.sSettings.sMainDataFormat}");
+
+                //delay
+                sTemp = sINIREAD("mainconfig", "delay", GlobalVars.sConfigPath);
+                if (sTemp != "null")
+                {
+                    GlobalVars.sSettings.iDelay = int.Parse(sTemp);
+                }
+                else
+                {
+                    vINIWRITE("mainconfig", "delay", "0", GlobalVars.sConfigPath);
+                }
+                Console.WriteLine($"LECIA: Load Config -> delay: {GlobalVars.sSettings.iDelay}");
             }
 
             if (GlobalVars.sSettings.bAutoStart == true)
@@ -359,13 +371,12 @@ namespace LECIA
                     }
 
                     
-                    //todo:可变的时间
-                    Thread.Sleep(20);
+                    Thread.Sleep(GlobalVars.sSettings.iDelay);
                 }
                 catch (Exception ex)
                 {
                     //需要尝试重新初始化
-                    Console.WriteLine($"LECIA: ERROR: {ex.Message}");
+                    Console.WriteLine($"LECIA: ERROR: {ex.ToString()}");
                 }
             }
         }

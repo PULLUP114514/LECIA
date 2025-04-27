@@ -6,6 +6,8 @@ public static class GlobalVars
     public static bool bThreadStarted;
     public static bool bKeepWorking = true;
 
+    public static string sConfigPath;
+
     //结构体
     public struct stSettings
     {
@@ -15,9 +17,10 @@ public static class GlobalVars
         public int iBaundRate;
         public string sNetIP;
         public int iNetPort;
+        public int iDelay;
         public string sMainDataFormat;
 
-        public stSettings(bool autoStart, int dataTarget, string comPort, int BaundRate, string netIP, int netPort, string mainDataFormat)
+        public stSettings(bool autoStart, int dataTarget, string comPort, int BaundRate, string netIP, int netPort, string mainDataFormat,int delay)
         {
             bAutoStart = autoStart;
             iDataTarget = dataTarget;
@@ -26,8 +29,9 @@ public static class GlobalVars
             iBaundRate = BaundRate;
             iNetPort = netPort;
             sMainDataFormat = mainDataFormat;
+            iDelay = delay;
         }
     }
 
-    public static stSettings sSettings= new stSettings(false, 0, "COM1", 115200, "", 0, "");
+    public static stSettings sSettings = new stSettings(false, 0, "COM1", 115200, "", 0, "", 200);
 }
