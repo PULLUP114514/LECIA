@@ -1,0 +1,184 @@
+﻿using ClassIsland.Core.Abstractions.Controls;
+using ClassIsland.Core.Attributes;
+using ClassIsland.Core.Enums.SettingsWindow;
+using ClassIsland.Core.Controls.CommonDialog;
+using MaterialDesignThemes.Wpf;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Navigation;
+using System.Windows.Shapes;
+using static LECIA.Plugin;
+using System.ComponentModel;
+using System.Text.RegularExpressions;
+
+
+namespace LECIA.view
+{
+    [SettingsPageInfo(
+        "LECIA.Settings",
+        "LECIA设置",
+        PackIconKind.CogOutline,   // 未选中时设置页面图标
+        PackIconKind.Cog,  // 选中时设置页面图标
+        SettingsPageCategory.External  // 设置页面类别
+    )]
+
+    /// <summary>
+    /// settings.xaml 的交互逻辑
+    /// </summary>
+    public partial class settings : SettingsPageBase
+    {
+        //ini RW
+        [System.Runtime.InteropServices.DllImport("kernel32")]
+        private static extern long WritePrivateProfileString(string section, string key, string val, string filePath);
+        [System.Runtime.InteropServices.DllImport("kernel32")]
+        private static extern int GetPrivateProfileString(string section, string key, string def, System.Text.StringBuilder retVal, int size, string filePath);
+        /// <summary>
+        /// 写入INI
+        /// 配置节点名称，键名，值，路径
+        /// </summary>
+        /// <param name="sSection">配置节点名称</param>
+        /// <param name="sKey">键名</param>
+        /// <param name="sValue">设置的键值</param>
+        /// <param name="sPath">路径</param>
+        private void vINIWRITE(string sSection, string sKey, string sValue, string sPath)
+        {
+            WritePrivateProfileString(sSection, sKey, sValue, sPath);
+        }
+
+        /// <summary>
+        /// 读取INI
+        /// 配置节点名称，键名，路径
+        /// 每次从ini中读取1024字节
+        /// </summary>
+        /// <param name="sSection">配置节点名称</param>
+        /// <param name="sKey">键名</param>
+        /// <param name="sPath">路径</param>
+        /// <returns></returns>
+        private string sINIREAD(string sSection, string sKey, string sPath)
+        {
+            System.Text.StringBuilder temp = new System.Text.StringBuilder(1024);
+            try
+            {
+                GetPrivateProfileString(sSection, sKey, "null", temp, 255, sPath);
+            }
+            catch (Exception ex)
+            {
+                return "null";
+            }
+            return temp.ToString();
+        }
+
+        /// <summary>
+        /// 检查字符串是否为COM*
+        /// </summary>
+        /// <param name="sInput">欲检测string</param>
+        /// <returns></returns>
+        private bool bCHECKCOMSTRING(string sInput)
+        {
+            if (string.IsNullOrEmpty(sInput))
+                return false;
+
+            return Regex.IsMatch(sInput, @"^COM\d+$", RegexOptions.IgnoreCase);
+        }
+
+        private int iCHECKRETURNSLEEPTIME(string sInputTime)
+        {
+            if (Regex.IsMatch(sInputTime, @"^[1-9]\d*$"))
+            {
+                return int.Parse(sInputTime);
+            }
+            else
+            {
+                return -1;
+            }
+        }
+
+        private bool bFULLCHECK()
+        {
+            try
+            {
+                //校验COM
+                if (!bCHECKCOMSTRING(
+                    ((System.Windows.Controls.TextBox)SETTING_COMPORT.Switcher).Text
+                ))
+                {
+                    CommonDialog.ShowInfo("COM口格式错误!");
+                    return false;
+                }
+                //校验Delay
+                int iTempDelay = iCHECKRETURNSLEEPTIME(
+                    ((System.Windows.Controls.TextBox)SETTING_DELAYTIME.Switcher).Text
+                    );
+                if (iTempDelay == -1)
+                {
+                    CommonDialog.ShowInfo("延时错误，请输入正整数!");
+                    return false;
+                }
+                //校验波特率
+                int iBaundrate = iCHECKRETURNSLEEPTIME(
+                    ((System.Windows.Controls.TextBox)SETTING_BAUNDRATE.Switcher).Text
+                    );
+                if (iBaundrate == -1)
+                {
+                    CommonDialog.ShowInfo("波特率错误，请输入正整数!");
+                    return false;
+                }
+                return true;
+            }
+            catch(Exception ex)
+            {
+                CommonDialog.ShowInfo($"发生了错误\n{ex.Message}");
+                return false;   
+            }
+        }
+
+        public bool bKeepWorking { get; set; }
+        public settings()
+        {
+            InitializeComponent();
+            if (GlobalVars.bThreadStarted)
+            {
+                MENU_STARTSW.Header = "立即停止";
+            }
+        }
+
+        private void MENU_SAVE_Click(object sender, RoutedEventArgs e)
+        {
+            if (bFULLCHECK()) {
+
+            }
+
+        }
+
+        private void MENU_STARTSW_Click(object sender, RoutedEventArgs e)
+        {
+            if (GlobalVars.bThreadStarted)
+            {
+                GlobalVars.bKeepWorking = false;
+                MENU_STARTSW.Header = "立即启动";
+            }
+            else
+            {
+                GlobalVars.bKeepWorking = true;
+                MENU_STARTSW.Header = "立即停止";
+                Task.Run(() =>
+                {
+                    var plugin = new LECIA.Plugin();
+                    plugin.vMAINLOOP();
+                });
+
+            }
+            GlobalVars.bThreadStarted = !GlobalVars.bThreadStarted;
+        }
+    }
+}

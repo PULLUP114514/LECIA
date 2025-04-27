@@ -20,6 +20,8 @@ using ClassIsland.Shared;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 using System.Text;
 using System.Windows.Forms;
+using LECIA.view;
+
 
 namespace LECIA
 {
@@ -81,38 +83,18 @@ namespace LECIA
             return temp.ToString();
         }
 
-        //结构体
-        struct stSettings
-        {
-            public bool bAutoStart;
-            public int iDataTarget;    // 0 -> COM    1 -> TCP
-            public string sComPort;
-            public int iBaundRate;
-            public string sNetIP;
-            public int iNetPort;
-            public string sMainDataFormat;
 
-            public stSettings(bool autoStart, int dataTarget, string comPort, int BaundRate, string netIP, int netPort, string mainDataFormat)
-            {
-                bAutoStart = autoStart;
-                iDataTarget = dataTarget;
-                sComPort = comPort;
-                sNetIP = netIP;
-                iBaundRate = BaundRate;
-                iNetPort = netPort;
-                sMainDataFormat = mainDataFormat;
-            }
-        }
-
-        private static stSettings sSettings = new stSettings(false, 0, "COM1" ,115200, "", 0, "");
         private string sConfigPath = "";
-        private static bool bKeepWorking = true;
-        private static Thread thrMainLoop = null;
+        //public static bool bKeepWorking { get; set; } = true;
+        public static Thread thrMainLoop ;
         private static SerialPort spSerialPort = null;
         public ILessonsService lsLessonsService { get; set; }
         public static ClassPlan cpCurrentClassPlan;
         public static Subject sNextClassSubject;
         public static TimeSpan tsTimeToNextPoint;
+        //public bool bThreadStarted { get; set; } = false;
+        //public LECIA.view.settings Settings { get; set; } = new();
+
         public IProfileService psProfile { get; set; }
         public override void Initialize(HostBuilderContext context, IServiceCollection services)
         {
@@ -140,11 +122,11 @@ namespace LECIA
                 {
                     if (sTemp == "0")
                     {
-                        sSettings.bAutoStart = false;
+                        GlobalVars.sSettings.bAutoStart = false;
                     }
                     else if (sTemp == "1")
                     {
-                        sSettings.bAutoStart = true;
+                        GlobalVars.sSettings.bAutoStart = true;
                     }
                     else
                     {
@@ -155,64 +137,66 @@ namespace LECIA
                 {
                     vINIWRITE("mainconfig", "autostart", "0", sConfigPath);
                 }
-                Console.WriteLine($"LECIA: Load Config -> autostart: {sSettings.bAutoStart}");
+                Console.WriteLine($"LECIA: Load Config -> autostart: {GlobalVars.sSettings.bAutoStart}");
 
                 //datatarget
                 sTemp = sINIREAD("mainconfig", "datatarget", sConfigPath);
                 if (sTemp != "null")
                 {
-                    sSettings.iDataTarget = int.Parse(sTemp);
+                    GlobalVars.sSettings.iDataTarget = int.Parse(sTemp);
                 }
                 else
                 {
                     vINIWRITE("mainconfig", "datatarget", "0", sConfigPath);
                 }
-                Console.WriteLine($"LECIA: Load Config -> datatarget: {sSettings.iDataTarget}");
+                Console.WriteLine($"LECIA: Load Config -> datatarget: {GlobalVars.sSettings.iDataTarget}");
 
                 //comport
                 sTemp = sINIREAD("mainconfig", "comport", sConfigPath);
                 if (sTemp != "null")
                 {
-                    sSettings.sComPort = sTemp;
+                    GlobalVars.sSettings.sComPort = sTemp;
                 }
                 else
                 {
                     vINIWRITE("mainconfig", "comport", "COM1", sConfigPath);
                 }
-                Console.WriteLine($"LECIA: Load Config -> comport: {sSettings.sComPort}");
+                Console.WriteLine($"LECIA: Load Config -> comport: {GlobalVars.sSettings.sComPort}");
 
                 //BaundRate
                 sTemp = sINIREAD("mainconfig", "baundrate", sConfigPath);
                 if (sTemp != "null")
                 {
-                    sSettings.iBaundRate = int.Parse(sTemp);
+                    GlobalVars.sSettings.iBaundRate = int.Parse(sTemp);
                 }
                 else
                 {
                     vINIWRITE("mainconfig", "baundrate", "0", sConfigPath);
                 }
-                Console.WriteLine($"LECIA: Load Config -> BaundRate: {sSettings.iBaundRate}");
+                Console.WriteLine($"LECIA: Load Config -> BaundRate: {GlobalVars.sSettings.iBaundRate}");
 
                 //maindataformat
                 sTemp = sINIREAD("mainconfig", "maindataformat", sConfigPath);
                 if (sTemp != "null")
                 {
-                    sSettings.sMainDataFormat = sTemp;
+                    GlobalVars.sSettings.sMainDataFormat = sTemp;
                 }
                 else
                 {
                     vINIWRITE("mainconfig", "maindataformat", "no config", sConfigPath);
                 }
-                Console.WriteLine($"LECIA: Load Config -> maindataformat: {sSettings.sMainDataFormat}");
+                Console.WriteLine($"LECIA: Load Config -> maindataformat: {GlobalVars.sSettings.sMainDataFormat}");
             }
 
-            if (sSettings.bAutoStart == true)
+            if (GlobalVars.sSettings.bAutoStart == true)
             {
+                GlobalVars.bThreadStarted = true;
                 thrMainLoop = new(vMAINLOOP);
                 vAPP.AppStarted += (sender, args) => {
                     thrMainLoop.Start();
                 };
             }
+            services.AddSettingsPage<settings>();
             return;
         }
 
@@ -231,8 +215,8 @@ namespace LECIA
                 }
 
                 spSerialPort = new SerialPort(
-                    sSettings.sComPort,
-                    sSettings.iBaundRate,
+                    GlobalVars.sSettings.sComPort,
+                    GlobalVars.sSettings.iBaundRate,
                     Parity.None,
                     8,
                     StopBits.One);
@@ -259,22 +243,21 @@ namespace LECIA
 
 
 
-        //todo:还需要将config中的message配置读取到sMessage中
-        private void vMAINLOOP()
+        public void vMAINLOOP()
         {
             lsLessonsService = IAppHost.GetService<ILessonsService>();
             psProfile = IAppHost.GetService<IProfileService>();
             DateTime dtTargetDate = DateTime.Today;
             string sGuid;
             string sMessage = "";
-            while (bKeepWorking)
+            while (GlobalVars.bKeepWorking)
             {
                 dtTargetDate = DateTime.Today;
 
                 //↓测试数据
                 //sMessage = "NextPointTime: {NextPointTime}    ClassLeftTime: {ClassLeftTime}    " +
                 //    "BreakingLeftTime: {BreakingLeftTime}    CurrentSubjectName:{CurrentSubjectName}    CurrentClassPlan:{CurrentClassPlan}";
-                sMessage = sSettings.sMainDataFormat;
+                sMessage = GlobalVars.sSettings.sMainDataFormat;
                 try
                 {
                     //获取今日课表
@@ -375,7 +358,7 @@ namespace LECIA
                         spSerialPort.Write(bData, 0, bData.Length);
                     }
 
-
+                    
                     //todo:可变的时间
                     Thread.Sleep(20);
                 }
@@ -399,7 +382,7 @@ namespace LECIA
             }
 
             Console.WriteLine($"LECIA: Exiting");
-            bKeepWorking = false;
+            GlobalVars.bKeepWorking = false;
             Thread.Sleep(500);
             return;
         }   
