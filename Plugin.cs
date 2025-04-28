@@ -219,27 +219,27 @@ namespace LECIA
         /// </summary>
         private static void vINITSERIALPORT()
         {
-            try
+            //try
+            //{
+            if (spSerialPort != null)
             {
-                if (spSerialPort != null)
-                {
-                    spSerialPort.Dispose();
-                }
-
-                spSerialPort = new SerialPort(
-                    GlobalVars.sSettings.sComPort,
-                    GlobalVars.sSettings.iBaundRate,
-                    Parity.None,
-                    8,
-                    StopBits.One);
-
-                spSerialPort.Open();
+                spSerialPort.Dispose();
             }
-            catch (Exception e)
-            {
-                Console.WriteLine($"LECIA: Init Comport error: {e.Message}");
-                Thread.Sleep(200);
-            }
+
+            spSerialPort = new SerialPort(
+                GlobalVars.sSettings.sComPort,
+                GlobalVars.sSettings.iBaundRate,
+                Parity.None,
+                8,
+                StopBits.One);
+
+            spSerialPort.Open();
+            //}
+            //catch (Exception e)
+            //{
+            //    Console.WriteLine($"LECIA: Init Comport error: {e.Message}");
+            //    Thread.Sleep(200);
+            //}
         }
 
         public string sGETSUBJECTNAMEBYGUID(string guid)
@@ -262,6 +262,21 @@ namespace LECIA
             DateTime dtTargetDate = DateTime.Today;
             string sGuid;
             string sMessage = "";
+
+            //需要先关闭Serial否则设置不更新
+            try
+            {
+                if (spSerialPort != null)
+                {
+                    spSerialPort.Dispose();
+                }
+            }
+            catch
+            {
+                //ignore
+            }
+
+
             while (GlobalVars.bKeepWorking)
             {
                 dtTargetDate = DateTime.Today;
@@ -370,13 +385,16 @@ namespace LECIA
                         spSerialPort.Write(bData, 0, bData.Length);
                     }
 
-                    
+                    GlobalVars.sThreadMessage = "成功的";
                     Thread.Sleep(GlobalVars.sSettings.iDelay);
                 }
                 catch (Exception ex)
                 {
                     //需要尝试重新初始化
-                    Console.WriteLine($"LECIA: ERROR: {ex.ToString()}");
+                    Console.WriteLine($"LECIA: ERROR: {ex.Message}\n{ex.ToString()}");
+
+                    GlobalVars.sThreadMessage = $"LECIA: ERROR: {ex.Message}\n{ex.ToString()}";
+                    Thread.Sleep(500);
                 }
             }
         }

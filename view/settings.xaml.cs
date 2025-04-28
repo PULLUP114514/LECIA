@@ -21,6 +21,9 @@ using static LECIA.Plugin;
 using System.ComponentModel;
 using System.Text.RegularExpressions;
 using unvell.ReoGrid.Actions;
+using MahApps.Metro.Controls;
+using System.Windows.Forms;
+using System.Windows.Threading;
 
 
 namespace LECIA.view
@@ -113,7 +116,7 @@ namespace LECIA.view
                     ((System.Windows.Controls.TextBox)SETTING_COMPORT.Switcher).Text
                 ))
                 {
-                    CommonDialog.ShowInfo("COM口格式错误!");
+                    ClassIsland.Core.Controls.CommonDialog.CommonDialog.ShowInfo("COM口格式错误!");
                     return false;
                 }
                 //校验Delay
@@ -122,7 +125,7 @@ namespace LECIA.view
                     );
                 if (iTempDelay == -1)
                 {
-                    CommonDialog.ShowInfo("延时错误，请输入正整数!");
+                    ClassIsland.Core.Controls.CommonDialog.CommonDialog.ShowInfo("延时错误，请输入正整数!");
                     return false;
                 }
                 //校验波特率
@@ -131,7 +134,7 @@ namespace LECIA.view
                     );
                 if (iBaundrate == -1)
                 {
-                    CommonDialog.ShowInfo("波特率错误，请输入正整数!");
+                    ClassIsland.Core.Controls.CommonDialog.CommonDialog.ShowInfo("波特率错误，请输入正整数!");
                     return false;
                 }
                 //数据格式
@@ -139,7 +142,7 @@ namespace LECIA.view
                     ((System.Windows.Controls.TextBox)SETTING_DATAFORMAT.Switcher).Text
                     ))
                 {
-                    CommonDialog.ShowInfo("数据格式为空!");
+                    ClassIsland.Core.Controls.CommonDialog.CommonDialog.ShowInfo("数据格式为空!");
                     return false;
                 }
 
@@ -148,12 +151,14 @@ namespace LECIA.view
             }
             catch(Exception ex)
             {
-                CommonDialog.ShowInfo($"发生了错误\n{ex.Message}");
+                ClassIsland.Core.Controls.CommonDialog.CommonDialog.ShowInfo($"发生了错误\n{ex.Message}");
                 return false;   
             }
         }
 
         public bool bKeepWorking { get; set; }
+        private DispatcherTimer dtThreadMessageTimer;
+
         public settings()
         {
             InitializeComponent();
@@ -161,6 +166,9 @@ namespace LECIA.view
             {
                 MENU_STARTSW.Header = "立即停止";
             }
+
+            DataContext = this; // 别漏了
+
             //set
             SETTING_AUTOSTARTSW.IsOn = GlobalVars.sSettings.bAutoStart;
             ((System.Windows.Controls.TextBox)SETTING_COMPORT.Switcher).Text = GlobalVars.sSettings.sComPort;
@@ -169,6 +177,14 @@ namespace LECIA.view
             ((System.Windows.Controls.TextBox)SETTING_DELAYTIME.Switcher).Text = GlobalVars.sSettings.iDelay.ToString();
 
 
+        }
+
+        private void vTIMERTICK(object sender, System.EventArgs e)
+        {
+            if(TEXTBOX_THREADMESSAGE.Text != GlobalVars.sThreadMessage)
+            {
+                TEXTBOX_THREADMESSAGE.Text = GlobalVars.sThreadMessage;
+            }
         }
 
         private void MENU_SAVE_Click(object sender, RoutedEventArgs e)
@@ -203,14 +219,14 @@ namespace LECIA.view
                             vINIWRITE("mainconfig", "baundrate", GlobalVars.sSettings.iBaundRate.ToString(), GlobalVars.sConfigPath);
                             vINIWRITE("mainconfig", "maindataformat", GlobalVars.sSettings.sMainDataFormat, GlobalVars.sConfigPath);
                             vINIWRITE("mainconfig", "delay", GlobalVars.sSettings.iDelay.ToString(), GlobalVars.sConfigPath);
-                            CommonDialog.ShowInfo("设置已保存!");
+                            ClassIsland.Core.Controls.CommonDialog.CommonDialog.ShowInfo("设置已保存!");
                         }
                     }
                 }
             }
             catch(Exception ex)
             {
-                CommonDialog.ShowInfo($"发生了错误\n{ex.Message}");
+                ClassIsland.Core.Controls.CommonDialog.CommonDialog.ShowInfo($"发生了错误\n{ex.Message}");
             }
 
         }
@@ -220,6 +236,10 @@ namespace LECIA.view
             if (GlobalVars.bThreadStarted)
             {
                 GlobalVars.bKeepWorking = false;
+                if (dtThreadMessageTimer != null)
+                {
+                    dtThreadMessageTimer.Stop();
+                }
                 MENU_STARTSW.Header = "立即启动";
             }
             else
@@ -242,6 +262,10 @@ namespace LECIA.view
                             var plugin = new LECIA.Plugin();
                             plugin.vMAINLOOP();
                         });
+                        dtThreadMessageTimer = new DispatcherTimer();
+                        dtThreadMessageTimer.Interval = System.TimeSpan.FromMilliseconds(20);
+                        dtThreadMessageTimer.Tick += vTIMERTICK;
+                        dtThreadMessageTimer.Start();
                     }
                     else
                     {
@@ -250,7 +274,7 @@ namespace LECIA.view
                 }
                 catch (Exception ex)
                 {
-                    CommonDialog.ShowInfo($"启动时发生了错误\n{ex.Message}");
+                    ClassIsland.Core.Controls.CommonDialog.CommonDialog.ShowInfo($"启动时发生了错误\n{ex.Message}");
                     return;
                 }
                 GlobalVars.bKeepWorking = true;
@@ -258,5 +282,7 @@ namespace LECIA.view
             }
             GlobalVars.bThreadStarted = !GlobalVars.bThreadStarted;
         }
+
+
     }
 }

@@ -19,7 +19,7 @@
     mc:Ignorable="d">
 
     <ScrollViewer>
-        <StackPanel MaxWidth="750">
+        <StackPanel Margin="20,6,60,6">
             <ci:SettingsCard
                 x:Name="SETTING_COMPORT"
                 Margin="0,0,0,6"
@@ -109,6 +109,17 @@
                     Click="MENU_SAVE_Click"
                     Header="保存设置" />
             </UniformGrid>
+            <Label
+                Content="线程消息："
+                FontSize="15"
+                FontWeight="Regular"
+                Foreground="{DynamicResource MaterialDesignBody}" />
+            <TextBox
+                x:Name="TEXTBOX_THREADMESSAGE"
+                Margin="6"
+                AllowDrop="True"
+                IsReadOnly="True"
+                TextWrapping="Wrap" />
         </StackPanel>
     </ScrollViewer>
 </ci:SettingsPageBase>

@@ -34,4 +34,7 @@ public static class GlobalVars
     }
 
     public static stSettings sSettings = new stSettings(false, 0, "COM1", 115200, "", 0, "", 200);
+
+
+    public static string sThreadMessage = "";
 }
