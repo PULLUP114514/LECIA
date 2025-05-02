@@ -1,7 +1,7 @@
 ﻿/// <summary>
 /// 简单粗暴的全局变量
 /// </summary>
-public static class GlobalVars
+public class GlobalVars
 {
     public static bool bThreadStarted;
     public static bool bKeepWorking = true;
@@ -12,22 +12,22 @@ public static class GlobalVars
     public struct stSettings
     {
         public bool bAutoStart;
-        public int iDataTarget;    // 0 -> COM    1 -> TCP
+        public int iDataTarget;    // 0 -> COM    1 -> UDP
         public string sComPort;
         public int iBaundRate;
-        public string sNetIP;
-        public int iNetPort;
+        public string sUDPNetIP;
+        public int iUDPNetPort;
         public int iDelay;
         public string sMainDataFormat;
 
-        public stSettings(bool autoStart, int dataTarget, string comPort, int BaundRate, string netIP, int netPort, string mainDataFormat,int delay)
+        public stSettings(bool autoStart, int dataTarget, string comPort, int BaundRate, string udpnetIP, int udpnetPort, string mainDataFormat,int delay)
         {
             bAutoStart = autoStart;
             iDataTarget = dataTarget;
             sComPort = comPort;
-            sNetIP = netIP;
+            sUDPNetIP = udpnetIP;
             iBaundRate = BaundRate;
-            iNetPort = netPort;
+            iUDPNetPort = udpnetPort;
             sMainDataFormat = mainDataFormat;
             iDelay = delay;
         }

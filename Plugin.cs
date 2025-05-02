@@ -21,7 +21,8 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 using System.Text;
 using System.Windows.Forms;
 using LECIA.view;
-
+using System.Net;
+using System.Net.Sockets;
 
 namespace LECIA
 {
@@ -198,6 +199,30 @@ namespace LECIA
                     vINIWRITE("mainconfig", "delay", "0", GlobalVars.sConfigPath);
                 }
                 Console.WriteLine($"LECIA: Load Config -> delay: {GlobalVars.sSettings.iDelay}");
+
+                //netip
+                sTemp = sINIREAD("mainconfig", "udpnetIP", GlobalVars.sConfigPath);
+                if (sTemp != "null")
+                {
+                    GlobalVars.sSettings.sUDPNetIP = sTemp;
+                }
+                else
+                {
+                    vINIWRITE("mainconfig", "udpnetIP", "", GlobalVars.sConfigPath);
+                }
+                Console.WriteLine($"LECIA: Load Config -> maindataformat: {GlobalVars.sSettings.sUDPNetIP}");
+
+                //iUDPNetPort
+                sTemp = sINIREAD("mainconfig", "udpnetport", GlobalVars.sConfigPath);
+                if (sTemp != "null")
+                {
+                    GlobalVars.sSettings.iUDPNetPort = int.Parse(sTemp);
+                }
+                else
+                {
+                    vINIWRITE("mainconfig", "udpnetport", "12345", GlobalVars.sConfigPath);
+                }
+                Console.WriteLine($"LECIA: Load Config -> delay: {GlobalVars.sSettings.iUDPNetPort}");
             }
 
             if (GlobalVars.sSettings.bAutoStart == true)
@@ -262,20 +287,23 @@ namespace LECIA
             DateTime dtTargetDate = DateTime.Today;
             string sGuid;
             string sMessage = "";
-
-            //需要先关闭Serial否则设置不更新
-            try
+            UdpClient ucUDPClientSender = new UdpClient();
+            //if 串口
+            if (GlobalVars.sSettings.iDataTarget == 0)
             {
-                if (spSerialPort != null)
+                //需要先关闭Serial 否则设置不更新
+                try
                 {
-                    spSerialPort.Dispose();
+                    if (spSerialPort != null)
+                    {
+                        spSerialPort.Dispose();
+                    }
+                }
+                catch
+                {
+                    //ignore
                 }
             }
-            catch
-            {
-                //ignore
-            }
-
 
             while (GlobalVars.bKeepWorking)
             {
@@ -295,10 +323,6 @@ namespace LECIA
                     });
                     if (cpCurrentClassPlan != null)
                     {
-                        //pProfile.Subjects.TryGetValue("97d0bf3f-137f-4f8a-87d6-ff387063bbd3", out var subject1);
-                        //sMessage = GetSubjectNameByGuid("97d0bf3f-137f-4f8a-87d6-ff387063bbd3");
-                        //sMessage = sNextClassSubject.Name;
-
                         /*
                          * 以下为关键字： (大小写敏感的）
                          * {NextPointTime}              距离下个时间点的剩余时间（可能为Zero）
@@ -307,7 +331,6 @@ namespace LECIA
                          * {CurrentSubjectName}         当前的课程名  （当无课程时为“无课程”）
                          * {CurrentClassPlan}           当前的课表
                          */
-
 
                         //获取下个时间点
                         if (lsLessonsService.OnBreakingTimeLeftTime != TimeSpan.Zero)
@@ -358,19 +381,42 @@ namespace LECIA
 
 
 
-                        //重初始化
-                        if (spSerialPort == null || !spSerialPort.IsOpen)
+
+
+
+                        //空数据返回
+                        if(!(
+                            !string.IsNullOrEmpty(sMessage)
+                            ))
                         {
-                            vINITSERIALPORT();
                             continue;
                         }
 
 
-                        //发送
-                        if (spSerialPort != null && spSerialPort.IsOpen && !string.IsNullOrEmpty(sMessage))
+                        //UDP
+                        if (GlobalVars.sSettings.iDataTarget == 1)
                         {
+                            IPEndPoint iep = new IPEndPoint(IPAddress.Parse(GlobalVars.sSettings.sUDPNetIP), GlobalVars.sSettings.iUDPNetPort);
+                            byte[] bData = Encoding.UTF8.GetBytes($"{sMessage}");
+                            ucUDPClientSender.Send(bData, bData.Length, iep);
+                            continue;
+                        }
+
+                        //COM
+                        if (GlobalVars.sSettings.iDataTarget == 0)
+                        {
+                            //重初始化
+                            if (spSerialPort == null || !spSerialPort.IsOpen)
+                            {
+                                vINITSERIALPORT();
+                                continue;
+                            }
+
+
+
                             byte[] bData = Encoding.UTF8.GetBytes($"{sMessage}\n");
                             spSerialPort.Write(bData, 0, bData.Length);
+                            continue;
                         }
                     }
                     else

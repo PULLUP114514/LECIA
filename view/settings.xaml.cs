@@ -95,11 +95,11 @@ namespace LECIA.view
             return Regex.IsMatch(sInput, @"^COM\d+$", RegexOptions.IgnoreCase);
         }
 
-        private int iCHECKRETURNSLEEPTIME(string sInputTime)
+        private int iCHECKRETURNINT(string sInputInt)
         {
-            if (Regex.IsMatch(sInputTime, @"^[1-9]\d*$"))
+            if (Regex.IsMatch(sInputInt, @"^[0-9]\d*$"))
             {
-                return int.Parse(sInputTime);
+                return int.Parse(sInputInt);
             }
             else
             {
@@ -111,16 +111,59 @@ namespace LECIA.view
         {
             try
             {
-                //校验COM
-                if (!bCHECKCOMSTRING(
-                    ((System.Windows.Controls.TextBox)SETTING_COMPORT.Switcher).Text
-                ))
+                int iDataTarget = iCHECKRETURNINT(
+                    ((System.Windows.Controls.TextBox)SETTING_DATATARGET.Switcher).Text
+                    );
+                if (iDataTarget == 0)
                 {
-                    ClassIsland.Core.Controls.CommonDialog.CommonDialog.ShowInfo("COM口格式错误!");
+                    //校验COM
+                    if (!bCHECKCOMSTRING(
+                        ((System.Windows.Controls.TextBox)SETTING_COMPORT.Switcher).Text
+                    ))
+                    {
+                        ClassIsland.Core.Controls.CommonDialog.CommonDialog.ShowInfo("COM口格式错误!");
+                        return false;
+                    }
+                    //校验波特率
+                    int iBaundrate = iCHECKRETURNINT(
+                        ((System.Windows.Controls.TextBox)SETTING_BAUNDRATE.Switcher).Text
+                        );
+                    if (iBaundrate == -1)
+                    {
+                        ClassIsland.Core.Controls.CommonDialog.CommonDialog.ShowInfo("波特率错误，请输入正整数!");
+                        return false;
+                    }
+                }
+                else if (iDataTarget == 1)
+                {
+                    //校验UDP
+                    //校验IP
+                    string sIP = ((System.Windows.Controls.TextBox)SETTING_UDPIP.Switcher).Text;
+                    if (string.IsNullOrEmpty(sIP))
+                    {
+                        ClassIsland.Core.Controls.CommonDialog.CommonDialog.ShowInfo("IP错误!");
+
+                        return false;
+                    }
+                    //校验端口
+                    int iPort = iCHECKRETURNINT(
+                        ((System.Windows.Controls.TextBox)SETTING_UDPPORT.Switcher).Text
+                        );
+                    if(iPort == -1 || iPort > 65535 || iPort <= 0)
+                    {
+                        ClassIsland.Core.Controls.CommonDialog.CommonDialog.ShowInfo("UDP端口错误");
+                        return false;
+                    }
+                }
+                else
+                {
+                    ClassIsland.Core.Controls.CommonDialog.CommonDialog.ShowInfo("不合法的数据目标");
                     return false;
                 }
+
+
                 //校验Delay
-                int iTempDelay = iCHECKRETURNSLEEPTIME(
+                int iTempDelay = iCHECKRETURNINT(
                     ((System.Windows.Controls.TextBox)SETTING_DELAYTIME.Switcher).Text
                     );
                 if (iTempDelay == -1)
@@ -128,15 +171,8 @@ namespace LECIA.view
                     ClassIsland.Core.Controls.CommonDialog.CommonDialog.ShowInfo("延时错误，请输入正整数!");
                     return false;
                 }
-                //校验波特率
-                int iBaundrate = iCHECKRETURNSLEEPTIME(
-                    ((System.Windows.Controls.TextBox)SETTING_BAUNDRATE.Switcher).Text
-                    );
-                if (iBaundrate == -1)
-                {
-                    ClassIsland.Core.Controls.CommonDialog.CommonDialog.ShowInfo("波特率错误，请输入正整数!");
-                    return false;
-                }
+
+
                 //数据格式
                 if (string.IsNullOrEmpty(
                     ((System.Windows.Controls.TextBox)SETTING_DATAFORMAT.Switcher).Text
@@ -175,6 +211,9 @@ namespace LECIA.view
             ((System.Windows.Controls.TextBox)SETTING_BAUNDRATE.Switcher).Text = GlobalVars.sSettings.iBaundRate.ToString();
             ((System.Windows.Controls.TextBox)SETTING_DATAFORMAT.Switcher).Text = GlobalVars.sSettings.sMainDataFormat;
             ((System.Windows.Controls.TextBox)SETTING_DELAYTIME.Switcher).Text = GlobalVars.sSettings.iDelay.ToString();
+            ((System.Windows.Controls.TextBox)SETTING_DATATARGET.Switcher).Text = GlobalVars.sSettings.iDataTarget.ToString();
+            ((System.Windows.Controls.TextBox)SETTING_UDPIP.Switcher).Text = GlobalVars.sSettings.sUDPNetIP;
+            ((System.Windows.Controls.TextBox)SETTING_UDPPORT.Switcher).Text = GlobalVars.sSettings.iUDPNetPort.ToString();
 
 
         }
@@ -187,6 +226,30 @@ namespace LECIA.view
             }
         }
 
+        private void vSETDATA()
+        {
+            //set
+            GlobalVars.sSettings.bAutoStart = SETTING_AUTOSTARTSW.IsOn;
+            GlobalVars.sSettings.iDataTarget = int.Parse(((System.Windows.Controls.TextBox)SETTING_DATATARGET.Switcher).Text);
+            if (GlobalVars.sSettings.iDataTarget == 0)
+            {
+                GlobalVars.sSettings.sComPort = ((System.Windows.Controls.TextBox)SETTING_COMPORT.Switcher).Text;
+                GlobalVars.sSettings.iBaundRate = int.Parse(((System.Windows.Controls.TextBox)SETTING_BAUNDRATE.Switcher).Text);
+            }
+            else if (GlobalVars.sSettings.iDataTarget == 1)
+            {
+                GlobalVars.sSettings.sUDPNetIP = ((System.Windows.Controls.TextBox)SETTING_UDPIP.Switcher).Text;
+                GlobalVars.sSettings.iUDPNetPort = int.Parse(((System.Windows.Controls.TextBox)SETTING_UDPPORT.Switcher).Text);
+            }
+            else
+            {
+                return;
+            }
+
+            GlobalVars.sSettings.sMainDataFormat = ((System.Windows.Controls.TextBox)SETTING_DATAFORMAT.Switcher).Text;
+            GlobalVars.sSettings.iDelay = int.Parse(((System.Windows.Controls.TextBox)SETTING_DELAYTIME.Switcher).Text);
+        }
+
         private void MENU_SAVE_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -195,14 +258,7 @@ namespace LECIA.view
                 {
 
                     {
-                        //set
-                        GlobalVars.sSettings.bAutoStart = SETTING_AUTOSTARTSW.IsOn;
-                        GlobalVars.sSettings.iDataTarget = 0;
-                        GlobalVars.sSettings.sComPort = ((System.Windows.Controls.TextBox)SETTING_COMPORT.Switcher).Text;
-                        GlobalVars.sSettings.iBaundRate = int.Parse(((System.Windows.Controls.TextBox)SETTING_BAUNDRATE.Switcher).Text);
-                        GlobalVars.sSettings.sMainDataFormat = ((System.Windows.Controls.TextBox)SETTING_DATAFORMAT.Switcher).Text;
-                        GlobalVars.sSettings.iDelay = int.Parse(((System.Windows.Controls.TextBox)SETTING_DELAYTIME.Switcher).Text);
-
+                        vSETDATA();
 
                         //write
                         {
@@ -219,6 +275,8 @@ namespace LECIA.view
                             vINIWRITE("mainconfig", "baundrate", GlobalVars.sSettings.iBaundRate.ToString(), GlobalVars.sConfigPath);
                             vINIWRITE("mainconfig", "maindataformat", GlobalVars.sSettings.sMainDataFormat, GlobalVars.sConfigPath);
                             vINIWRITE("mainconfig", "delay", GlobalVars.sSettings.iDelay.ToString(), GlobalVars.sConfigPath);
+                            vINIWRITE("mainconfig", "udpnetport", GlobalVars.sSettings.iUDPNetPort.ToString(), GlobalVars.sConfigPath);
+                            vINIWRITE("mainconfig", "udpnetIP", GlobalVars.sSettings.sUDPNetIP, GlobalVars.sConfigPath);
                             ClassIsland.Core.Controls.CommonDialog.CommonDialog.ShowInfo("设置已保存!");
                         }
                     }
@@ -227,8 +285,8 @@ namespace LECIA.view
             catch(Exception ex)
             {
                 ClassIsland.Core.Controls.CommonDialog.CommonDialog.ShowInfo($"发生了错误\n{ex.Message}");
+                return;
             }
-
         }
 
         private void MENU_STARTSW_Click(object sender, RoutedEventArgs e)
@@ -248,15 +306,8 @@ namespace LECIA.view
                 {
                     if (bFULLCHECK())
                     {
-                        {
-                            //set
-                            GlobalVars.sSettings.bAutoStart = SETTING_AUTOSTARTSW.IsOn;
-                            GlobalVars.sSettings.iDataTarget = 0;
-                            GlobalVars.sSettings.sComPort = ((System.Windows.Controls.TextBox)SETTING_COMPORT.Switcher).Text;
-                            GlobalVars.sSettings.iBaundRate = int.Parse(((System.Windows.Controls.TextBox)SETTING_BAUNDRATE.Switcher).Text);
-                            GlobalVars.sSettings.sMainDataFormat = ((System.Windows.Controls.TextBox)SETTING_DATAFORMAT.Switcher).Text;
-                            GlobalVars.sSettings.iDelay = int.Parse(((System.Windows.Controls.TextBox)SETTING_DELAYTIME.Switcher).Text);
-                        }
+                        vSETDATA();
+                        GlobalVars.bKeepWorking = true;
                         Task.Run(() =>
                         {
                             var plugin = new LECIA.Plugin();
@@ -277,12 +328,28 @@ namespace LECIA.view
                     ClassIsland.Core.Controls.CommonDialog.CommonDialog.ShowInfo($"启动时发生了错误\n{ex.Message}");
                     return;
                 }
-                GlobalVars.bKeepWorking = true;
+                
                 MENU_STARTSW.Header = "立即停止";
             }
             GlobalVars.bThreadStarted = !GlobalVars.bThreadStarted;
         }
 
+        private void vTEXTBOX_FORMAT_CHANGED(object sender, TextChangedEventArgs e)
+        {
+            string input = ((System.Windows.Controls.TextBox)SETTING_DATAFORMAT.Switcher).Text;
+            string result = sCHANGESHOWPREVIEW(input); // 调用你定义的方法
+            TEXTBOX_FORMATSPREVIEW.Text = result;
+        }
 
+        private string sCHANGESHOWPREVIEW(string sInput)
+        {
+            sInput = sInput.Replace("{NextPointTime}", "12:34:56.8173949");
+            sInput = sInput.Replace("{ClassLeftTime}", "02:11:44.8173949");
+            sInput = sInput.Replace("{BreakingLeftTime}", "11:11:22.8122249");
+            sInput = sInput.Replace("{CurrentSubjectName}", "通用技术");
+            sInput = sInput.Replace("{CurrentClassPlan}", "自习,自习" +
+                ",数学,通用技术,周测,班会,美术,政治");
+            return sInput;
+        }
     }
 }

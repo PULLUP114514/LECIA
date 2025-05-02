@@ -20,6 +20,51 @@
 
     <ScrollViewer>
         <StackPanel Margin="20,6,60,6">
+
+            <ci:SettingsCard
+                x:Name="SETTING_DATATARGET"
+                Margin="0,0,0,6"
+                Description="0 -&gt; COM口 &#x000A;1 -&gt; UDP"
+                Header="数据目标"
+                IconGlyph="CogOutline">
+                <ci:SettingsCard.Switcher>
+                    <TextBox
+                        Width="150"
+                        Foreground="{DynamicResource MaterialDesignBody}"
+                        Text="0" />
+                </ci:SettingsCard.Switcher>
+            </ci:SettingsCard>
+
+
+            <ci:SettingsCard
+                x:Name="SETTING_UDPIP"
+                Margin="0,0,0,6"
+                Description="x.x.x.x"
+                Header="网络发送：UDP IP"
+                IconGlyph="CogOutline">
+                <ci:SettingsCard.Switcher>
+                    <TextBox
+                        Width="150"
+                        Foreground="{DynamicResource MaterialDesignBody}"
+                        Text="127.0.0.1" />
+                </ci:SettingsCard.Switcher>
+            </ci:SettingsCard>
+
+            <ci:SettingsCard
+                x:Name="SETTING_UDPPORT"
+                Margin="0,0,0,6"
+                Description="示例：12345"
+                Header="目标UDP端口"
+                IconGlyph="CogOutline">
+                <ci:SettingsCard.Switcher>
+                    <TextBox
+                        Width="150"
+                        Foreground="{DynamicResource MaterialDesignBody}"
+                        Text="12345" />
+                </ci:SettingsCard.Switcher>
+            </ci:SettingsCard>
+
+
             <ci:SettingsCard
                 x:Name="SETTING_COMPORT"
                 Margin="0,0,0,6"
@@ -86,11 +131,23 @@
                     <TextBox
                         Width="600"
                         Foreground="{DynamicResource MaterialDesignBody}"
-                        Text="" />
+                        Text=""
+                        TextChanged="vTEXTBOX_FORMAT_CHANGED" />
                 </ci:SettingsCard.Switcher>
             </ci:SettingsCard>
 
+            <Label
+                Margin="6"
+                AllowDrop="True"
+                Content="示例效果："
+                FontSize="15" />
 
+            <TextBox
+                x:Name="TEXTBOX_FORMATSPREVIEW"
+                Margin="6"
+                AllowDrop="True"
+                IsReadOnly="True"
+                TextWrapping="Wrap" />
 
             <ci:SettingsCard
                 Name="SETTING_AUTOSTARTSW"
